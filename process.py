@@ -5,29 +5,30 @@ import logging
 import typing
 
 
+KeyIconsMap = {
+    "LGui": "$$mdi.apple-keyboard-command$$",
+    "RGui": "$$mdi.apple-keyboard-command$$",
+    "LShift": "$$mdi.apple-keyboard-shift$$",
+    "RShift": "$$mdi.apple-keyboard-shift$$",
+    "LSFT": "$$mdi.apple-keyboard-shift$$",
+    "RSFT": "$$mdi.apple-keyboard-shift$$",
+    "LCtrl": "$$mdi.apple-keyboard-control$$",
+    "RCtrl": "$$mdi.apple-keyboard-control$$",
+    "LCTL": "$$mdi.apple-keyboard-control$$",
+    "RCTL": "$$mdi.apple-keyboard-control$$",
+    "LAlt": "$$mdi.apple-keyboard-option$$",
+    "RAlt": "$$mdi.apple-keyboard-option$$",
+    "Bksp": "$$mdi.backspace-outline$$",
+    "Tab": "$$mdi.keyboard-tab$$",
+    "Space": "$$mdi.keyboard-space$$",
+    "Enter": "$$mdi.keyboard-return$$",
+    "Left": "$$mdi.arrow-left$$",
+    "Up": "$$mdi.arrow-up$$",
+    "Down": "$$mdi.arrow-down$$",
+    "Right": "$$mdi.arrow-right$$",
+}
+
 def add_keycode_icons(inputs: list[str]) -> list[str]:
-    KeyIconsMap = {
-        "LGui": "$$mdi.apple-keyboard-command$$",
-        "RGui": "$$mdi.apple-keyboard-command$$",
-        "LShift": "$$mdi.apple-keyboard-shift$$",
-        "RShift": "$$mdi.apple-keyboard-shift$$",
-        "LSFT": "$$mdi.apple-keyboard-shift$$",
-        "RSFT": "$$mdi.apple-keyboard-shift$$",
-        "LCtrl": "$$mdi.apple-keyboard-control$$",
-        "RCtrl": "$$mdi.apple-keyboard-control$$",
-        "LCTL": "$$mdi.apple-keyboard-control$$",
-        "RCTL": "$$mdi.apple-keyboard-control$$",
-        "LAlt": "$$mdi.apple-keyboard-option$$",
-        "RAlt": "$$mdi.apple-keyboard-option$$",
-        "Bksp": "$$mdi.backspace-outline$$",
-        "Tab": "$$mdi.keyboard-tab$$",
-        "Space": "$$mdi.keyboard-space$$",
-        "Enter": "$$mdi.keyboard-return$$",
-        "Left": "$$mdi.arrow-left$$",
-        "Up": "$$mdi.arrow-up$$",
-        "Down": "$$mdi.arrow-down$$",
-        "Right": "$$mdi.arrow-right$$",
-    }
     outputs = []
     for line in inputs:
         result = None
@@ -148,7 +149,7 @@ def remove_s_symbols_for_combos(inputs: list[str]) -> list[str]:
                         logging.debug(f"Line: {result}")
                         break
             except Exception as e:
-                logging.error(f"Failed to remove symbols for combo for line: {line}")
+                logging.error(f"Failed to remove symbols for combo line: {line}")
                 logging.error(e, exc_info=True)
         if not result:
             result = line
@@ -156,6 +157,36 @@ def remove_s_symbols_for_combos(inputs: list[str]) -> list[str]:
 
     return outputs
 
+
+def add_keycode_icons_for_combos(inputs: list[str]) -> list[str]:
+    is_combos = False
+    outputs = []
+    for line in inputs:
+        result = None
+        if line.strip().startswith("combos"):
+            is_combos = True
+        if is_combos and is_json_item(line):
+            try:
+                line_json_data = json_from_string(line.replace("-", "", 1).strip())
+                for kname, kicon in KeyIconsMap.items():
+                    if (
+                        "k" in line_json_data
+                        and line_json_data["k"] == kname
+                    ):
+                        line_json_data["k"] = kicon
+                        result = replace_json_item(line, line_json_data)
+                        logging.debug(f"Replace mac-style icon for combo: {kname} => {kicon}")
+                        logging.debug(f"Line: {result}")
+                        break
+            except Exception as e:
+                logging.error(f"Failed to replace mac-style icon for combo line: {line}")
+                logging.error(e, exc_info=True)
+ 
+        if not result:
+            result = line
+        outputs.append(result)
+    return outputs
+    
 
 if __name__ == "__main__":
     logging.basicConfig(format="%(levelname)s - %(message)s", level=logging.DEBUG)
@@ -165,5 +196,6 @@ if __name__ == "__main__":
         lines = remove_s_symbols(lines)
         lines = replace_t_symbols(lines)
         lines = remove_s_symbols_for_combos(lines)
+        lines = add_keycode_icons_for_combos(lines)
         with open("vail-layout-processed.yml", "w") as dst:
             dst.writelines(lines)
